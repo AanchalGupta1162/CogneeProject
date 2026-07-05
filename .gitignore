@@ -49,4 +49,10 @@ db.sqlite3
 
 # Agent Development Kit (ADK) / Cognee Local Storage
 .cognee/
+.cognee_data/
 adk_memory/
+
+# Temporary / Scratch Files
+scratch/
+test_*.py
+check_db.py

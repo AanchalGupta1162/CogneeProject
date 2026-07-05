@@ -5,7 +5,8 @@ def make_celery():
     celery_app = Celery(
         "smart_ticket",
         broker=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0",
-        backend=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0"
+        backend=f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/0",
+        include=['packages.agents.orchestrator']
     )
     celery_app.conf.update(
         task_serializer='json',

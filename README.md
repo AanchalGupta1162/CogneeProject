@@ -63,8 +63,9 @@ make setup
 ```
 
 ### Step 3: Run the Backend (FastAPI)
-In a new terminal window, start the Python backend (runs on port 8000):
+In a new terminal window, activate the Python virtual environment and start the Python backend (runs on port 8000):
 ```bash
+source venv/bin/activate
 make dev-api
 ```
 
@@ -73,6 +74,14 @@ In a new terminal window, start the web interface (runs on port 3000):
 ```bash
 make dev-web
 ```
+
+### Step 5: Run the Cognee Local UI (Optional)
+If you want to visually inspect the AI's semantic knowledge graph locally, you can start the Cognee Studio interface in a new terminal window (ensure the venv is activated):
+```bash
+source venv/bin/activate
+make cognee-ui
+```
+This will spin up a local server. You can view your graph by navigating your browser to `http://0.0.0.0:8000/` (or whichever port it outputs).
 
 ---
 

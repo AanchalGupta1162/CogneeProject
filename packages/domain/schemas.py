@@ -28,10 +28,18 @@ class TicketResponse(BaseModel):
     status: str
     severity: str
     assigned_developer_id: Optional[str]
+    assigned_developer_name: Optional[str] = None
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+class AssignmentResult(BaseModel):
+    ticket_id: str
+    recommended_developer_id: Optional[str]
+    confidence_score: int
+    reasoning: str
+    evidence: Dict[str, Any]
 
 class TicketDetailResponse(TicketResponse):
     recommendations: List[AssignmentResult] = []
@@ -58,10 +66,3 @@ class WebhookPayload(BaseModel):
     sender: Dict[str, Any]
     pull_request: Optional[Dict[str, Any]] = None
     commits: Optional[List[Dict[str, Any]]] = None
-
-class AssignmentResult(BaseModel):
-    ticket_id: str
-    recommended_developer_id: Optional[str]
-    confidence_score: int
-    reasoning: str
-    evidence: Dict[str, Any]

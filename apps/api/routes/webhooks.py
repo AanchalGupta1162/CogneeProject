@@ -22,15 +22,14 @@ async def github_webhook(
     background_tasks: BackgroundTasks
 ):
     repo_id = f"{owner}/{repo_name}"
-    # In a real setup, we would fetch the repo's webhook_secret from DB
-    # secret_token = get_repo_secret(repo_id)
-    # payload_body = await request.body()
-    # verify_signature(payload_body, secret_token, request.headers.get("x-hub-signature-256"))
     
     payload = await request.json()
     event = request.headers.get("X-GitHub-Event")
     
+    print(f"[WEBHOOK] Received {event} event for {repo_id}")
+    
     # We use FastAPI background tasks instead of Celery for this local setup
     background_tasks.add_task(trigger_ingestion_agent, repo_id, event, payload)
     
+    print(f"[WEBHOOK] Queued IngestorAgent task for {repo_id}")
     return {"status": "accepted"}

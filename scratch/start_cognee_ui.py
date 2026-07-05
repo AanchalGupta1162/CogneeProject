@@ -2,17 +2,28 @@ import asyncio
 import os
 import signal
 import time
-import cognee
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
 async def main():
     print("Starting Cognee UI and Backend...")
+    # Configure shared Cognee data directory so UI and Docker see the same DB
+    # MUST be set BEFORE importing cognee!
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    cognee_data_dir = os.path.join(repo_root, ".cognee_data")
+    os.environ["DATA_ROOT_DIRECTORY"] = os.path.join(cognee_data_dir, "data")
+    os.environ["SYSTEM_ROOT_DIRECTORY"] = os.path.join(cognee_data_dir, "system")
+    os.environ["CACHE_ROOT_DIRECTORY"] = os.path.join(cognee_data_dir, "cache")
+
+    import cognee
+
     # Tell the Next.js frontend where the backend is
     os.environ["NEXT_PUBLIC_LOCAL_API_URL"] = "http://localhost:8001"
     # Tell the Backend API to allow CORS requests from our UI port
     os.environ["UI_APP_URL"] = "http://localhost:3001"
+    # Disable access control for the UI local backend
+    os.environ["ENABLE_BACKEND_ACCESS_CONTROL"] = "false"
     
     child_pids = []
     server = cognee.start_ui(

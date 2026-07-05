@@ -6,7 +6,7 @@ import json
 async def search_memory(query: str, dataset_name: str) -> str:
     """Search the Cognee memory graph for commits, files, and developers in a specific repository."""
     results = await memory_service.search(dataset_name, query)
-    return json.dumps([r.model_dump() for r in results]) if results else "[]"
+    return json.dumps(results) if results else "[]"
 
 search_memory_tool = Tool(func=search_memory)
 

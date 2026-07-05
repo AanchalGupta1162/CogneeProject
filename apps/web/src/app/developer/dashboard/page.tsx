@@ -14,6 +14,7 @@ interface Ticket {
   created_at: string;
   repository_id: string;
   assigned_developer_id: string | null;
+  assigned_developer_name?: string | null;
 }
 
 export default function DeveloperDashboard() {
@@ -41,8 +42,27 @@ export default function DeveloperDashboard() {
     })
       .then(res => res.json())
       .then((data: Ticket[]) => {
-        // Filter for demo purposes to show "assigned" tickets
-        const assignedTickets = Array.isArray(data) ? data.filter(t => t.assigned_developer_id !== null || t.status === "assigned") : [];
+        // Filter tickets to only show those strictly assigned to the currently logged in developer
+        const assignedTickets = Array.isArray(data) ? data.filter(t => {
+          if (t.status !== "assigned") return false;
+          
+          const assignedName = (t.assigned_developer_name || "").toLowerCase();
+          
+          if (session?.user?.name) {
+            // Match first name (e.g., "Harshavardhan Khamkar" -> "harshavardhan" matches "Harshavardhan-28")
+            const firstName = session.user.name.toLowerCase().split(' ')[0];
+            if (assignedName.includes(firstName)) return true;
+          }
+          
+          if (session?.user?.email) {
+            // Match email prefix
+            const emailPrefix = session.user.email.split('@')[0].toLowerCase();
+            if (assignedName.includes(emailPrefix)) return true;
+          }
+          
+          // Fallback: If logged in via local mock auth without a NextAuth session, show all assigned tickets for demo purposes
+          return !session?.user && localRole === "developer";
+        }) : [];
         setTickets(assignedTickets);
       })
       .catch(console.error)

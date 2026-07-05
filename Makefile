@@ -21,3 +21,6 @@ dev-api:
 setup:
 	pip install -r requirements.txt
 	cd apps/web && npm install
+
+cognee-ui:
+	python3 scratch/start_cognee_ui.py

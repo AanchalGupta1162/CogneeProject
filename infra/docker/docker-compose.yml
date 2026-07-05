@@ -36,6 +36,11 @@ services:
     environment:
       - POSTGRES_SERVER=db
       - REDIS_HOST=redis
+      - DATA_ROOT_DIRECTORY=/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data/data
+      - SYSTEM_ROOT_DIRECTORY=/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data/system
+      - CACHE_ROOT_DIRECTORY=/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data/cache
+    env_file:
+      - ../../.env
     depends_on:
       db:
         condition: service_healthy
@@ -43,7 +48,8 @@ services:
         condition: service_healthy
     volumes:
       - ../..:/app
-    command: uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload
+      - ../../.cognee_data:/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data
+    command: uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
 
   celery_worker:
     build:
@@ -52,6 +58,11 @@ services:
     environment:
       - POSTGRES_SERVER=db
       - REDIS_HOST=redis
+      - DATA_ROOT_DIRECTORY=/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data/data
+      - SYSTEM_ROOT_DIRECTORY=/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data/system
+      - CACHE_ROOT_DIRECTORY=/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data/cache
+    env_file:
+      - ../../.env
     depends_on:
       db:
         condition: service_healthy
@@ -59,7 +70,8 @@ services:
         condition: service_healthy
     volumes:
       - ../..:/app
-    command: celery -A packages.infrastructure.redis_client:celery_app worker --loglevel=info
+      - ../../.cognee_data:/Users/harsh/VS Code/Cognee/smart-ticket/.cognee_data
+    command: celery -A packages.infrastructure.redis_client:celery_app worker --loglevel=info --pool=threads
 
   # web:
   #   build:

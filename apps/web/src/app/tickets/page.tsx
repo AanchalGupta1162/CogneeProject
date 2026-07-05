@@ -12,6 +12,7 @@ interface Ticket {
   created_at: string;
   repository_id: string;
   assigned_developer_id: string | null;
+  assigned_developer_name?: string | null;
 }
 
 export default function TicketList() {
@@ -98,10 +99,12 @@ export default function TicketList() {
               
               <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                 <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-                {ticket.assigned_developer_id ? (
+                {ticket.assigned_developer_id && ticket.assigned_developer_name ? (
                   <span className="flex items-center text-indigo-500">
-                    <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-1">A</div>
-                    Assigned
+                    <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-1">
+                      {ticket.assigned_developer_name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="truncate max-w-[120px]">{ticket.assigned_developer_name}</span>
                   </span>
                 ) : (
                   <span>Unassigned</span>

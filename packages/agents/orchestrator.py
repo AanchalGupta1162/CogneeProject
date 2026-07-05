@@ -3,7 +3,7 @@ from celery import shared_task
 from packages.agents.ingestor import IngestorAgent
 from packages.agents.assigner import AssignerAgent
 from packages.shared.database import SessionLocal
-from packages.domain.models import Ticket, AssignmentRecommendation, Developer
+from packages.domain.models import Ticket, AssignmentRecommendation, Developer, Repository
 from packages.infrastructure.github_client import github_client
 from packages.agents.tools import add_to_memory
 
@@ -18,19 +18,44 @@ def trigger_ingestion_agent(repo_id: str, event: str, payload: dict):
 
 @shared_task
 def trigger_historical_sync(repo_id: str, limit: int = 10):
-    """Fetches the last N commits from GitHub and adds them to memory."""
+    """Fetches the last N commits from GitHub and adds them to memory as formatted markdown."""
+    print(f"[SYNC] Starting historical sync for {repo_id} (limit: {limit} commits)")
     commits = github_client.get_repo_commits(repo_id, limit)
+    print(f"[SYNC] Found {len(commits)} commits to process.")
     
     async def process_commits():
-        for commit in commits:
-            # We don't fetch full file patches here to save time/tokens during bulk sync,
-            # but we ingest the commit metadata.
-            import json
-            await add_to_memory(repo_id, f"Commit data: {json.dumps(commit)}")
-        
-        # After adding all data points, we trigger cognify for the repo dataset
         from packages.infrastructure.cognee_client import memory_service
+        for i, commit in enumerate(commits):
+            print(f"[SYNC] Extracting commit {i+1}/{len(commits)}: {commit['sha'][:7]}")
+            
+            # Format the commit and its patches into a Markdown document
+            md = f"# Commit: {commit['message']}\n\n"
+            md += f"**Repository**: {repo_id}\n"
+            md += f"**Author**: {commit['author_name']} ({commit['author_email']})\n"
+            md += f"**Date**: {commit['date']}\n"
+            md += f"**SHA**: {commit['sha']}\n\n"
+            
+            try:
+                files = github_client.get_commit_files(repo_id, commit['sha'])
+                if files:
+                    md += "## Modified Files\n\n"
+                    for f in files:
+                        md += f"### {f['filename']} ({f['status']})\n"
+                        md += f"Changes: +{f.get('additions', 0)} / -{f.get('deletions', 0)}\n\n"
+                        if f.get('patch'):
+                            md += "```diff\n"
+                            md += f['patch']
+                            md += "\n```\n\n"
+            except Exception as e:
+                print(f"[SYNC] Error fetching files for commit {commit['sha']}: {e}")
+
+            # Add this rich markdown document to Cognee
+            await memory_service.add_repository_data(repo_id, md)
+        
+        print(f"[SYNC] All {len(commits)} commits added to memory buffer. Cognifying dataset now...")
+        # Trigger cognify for the repo dataset
         await memory_service.cognify_repository(repo_id)
+        print(f"[SYNC] Cognify complete for {repo_id}! Graph is ready.")
 
     asyncio.run(process_commits())
     return f"Historical sync completed for {repo_id} with {len(commits)} commits."
@@ -44,10 +69,13 @@ def trigger_assignment_agent(ticket_id: str):
         db.close()
         return "No ticket or repository found."
 
+    repo = db.query(Repository).filter(Repository.id == ticket.repository_id).first()
+    repo_name = repo.name if repo else str(ticket.repository_id)
+
     agent = AssignerAgent()
     result = asyncio.run(agent.run(
         ticket_id=ticket.id, 
-        repo_id=ticket.repository_id, 
+        repo_id=repo_name, 
         title=ticket.title, 
         description=ticket.description
     ))

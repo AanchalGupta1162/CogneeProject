@@ -39,14 +39,14 @@ graph TD
 ### 2.1 Webhooks & The IngestorAgent
 When a repository is linked to the platform, we set up a GitHub webhook. 
 1. **Event Reception**: When a developer pushes code or opens a PR, GitHub fires a webhook payload to `/webhooks/github/{owner}/{repo_name}`.
-2. **IngestorAgent**: The FastAPI backend spins up the `IngestorAgent` (built on Google ADK) in the background. 
-3. **Knowledge Graph**: The `IngestorAgent` parses the commit data (authors, files changed, commit messages) and uses Cognee Cloud to inject this information into a semantic knowledge graph. This builds a deep understanding of *who* wrote *which* code.
+2. **Historical Sync & Chunking**: To ensure high-quality graph completion, the system uses the `github_client` to extract full commit patches, metadata, and authors, formatting them into rich Markdown documents.
+3. **Knowledge Graph**: The `IngestorAgent` parses this Markdown and uses Cognee Cloud to inject this information via the `memory_service.add_repository_data` endpoint. Cognee then `cognify`'s the data into a semantic knowledge graph. This builds a deep understanding of *who* wrote *which* code.
 
 ### 2.2 Ticketing & The AssignerAgent
 When a client or manager reports a bug through the UI:
 1. **Ticket Creation**: The ticket is saved to the PostgreSQL database with an "Open" or "Triage" status.
-2. **AssignerAgent**: The orchestrator triggers the `AssignerAgent`.
-3. **Contextual Retrieval**: The agent reads the ticket description (e.g., "Memory leak in the Webhook processor") and queries the Cognee memory graph to find out which developer most recently touched the related files or systems.
+2. **Rate-Limited Background Processing**: To avoid hitting LLM API rate limits, a persistent background loop (`process_tickets_rate_limited`) polls for unassigned tickets. It executes the synchronous `AssignerAgent` securely within a separate threadpool to avoid blocking FastAPI's main async event loop.
+3. **Contextual Retrieval**: The agent reads the ticket description and queries the Cognee memory graph using the actual GitHub repository name (e.g., `owner/repo`) as the dataset name. It finds out which developer most recently touched the related files or systems.
 4. **Autonomous Assignment**: The agent formulates an `AssignmentRecommendation` containing a confidence score and the exact evidence (e.g., commit hashes and file paths). It then automatically assigns the ticket to the most relevant developer.
 
 ---

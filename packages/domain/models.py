@@ -43,12 +43,13 @@ class Developer(Base):
 class Repository(Base):
     __tablename__ = "repositories"
     id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id"))
+    organization_id = Column(String, ForeignKey("organizations.id"), index=True)
     name = Column(String, nullable=False)
     provider = Column(String, default="github")
     webhook_secret = Column(String)
     sync_status = Column(String, default="pending")
     last_sync_at = Column(DateTime(timezone=True), nullable=True)
+    last_synced_commit_sha = Column(String, nullable=True)
 
     organization = relationship("Organization", back_populates="repositories")
     tickets = relationship("Ticket", back_populates="repository")
@@ -56,14 +57,14 @@ class Repository(Base):
 class Ticket(Base):
     __tablename__ = "tickets"
     id = Column(String, primary_key=True, default=generate_uuid)
-    organization_id = Column(String, ForeignKey("organizations.id"))
-    repository_id = Column(String, ForeignKey("repositories.id"), nullable=True)
+    organization_id = Column(String, ForeignKey("organizations.id"), index=True)
+    repository_id = Column(String, ForeignKey("repositories.id"), nullable=True, index=True)
     title = Column(String, nullable=False)
     description = Column(String)
     status = Column(String, default="open") # open, assigned, triage, closed
     severity = Column(String, default="medium")
-    reporter_id = Column(String, ForeignKey("users.id"), nullable=True)
-    assigned_developer_id = Column(String, ForeignKey("developers.id"), nullable=True)
+    reporter_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    assigned_developer_id = Column(String, ForeignKey("developers.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     organization = relationship("Organization", back_populates="tickets")

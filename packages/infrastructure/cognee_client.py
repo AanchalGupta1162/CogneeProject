@@ -1,4 +1,5 @@
 import cognee
+from cognee.api.v1.search import SearchType
 from packages.shared.config import settings
 
 class CogneeMemoryService:
@@ -15,29 +16,98 @@ class CogneeMemoryService:
             os.environ["LLM_API_KEY"] = settings.GOOGLE_API_KEY
             os.environ["LLM_PROVIDER"] = "gemini" # Assuming cognee supports gemini via litellm or directly
         
-        # We start with a clean slate for the prototype if needed, but in production we don't.
-        # await cognee.forget(everything=True) 
+        # Connect to Cognee Cloud or the Local UI Backend running on port 8001
+        if settings.COGNEE_BASE_URL:
+            if settings.COGNEE_API_KEY:
+                await cognee.serve(url=settings.COGNEE_BASE_URL, api_key=settings.COGNEE_API_KEY)
+            else:
+                await cognee.serve(url=settings.COGNEE_BASE_URL)
+        else:
+            # Connect to the local UI backend so they share the exact same instance and graph
+            await cognee.serve(url="http://localhost:8001")
 
     async def add_repository_data(self, dataset_name: str, data: str):
         """Adds code or commit data to the specific repository dataset."""
-        await cognee.add(data, dataset_name=dataset_name)
+        import httpx
+        import uuid
+        url = f"{settings.COGNEE_BASE_URL or 'http://localhost:8001'}/api/v1/add"
+        headers = {"X-Tenant-Id": "local"}
+        if settings.COGNEE_API_KEY:
+            headers["X-Api-Key"] = settings.COGNEE_API_KEY
+        
+        file_name = f"commit_data_{uuid.uuid4().hex[:8]}.txt"
+        
+        # We must pass string data as a file to the multipart endpoint
+        files = {
+            "data": (file_name, data.encode('utf-8'), "text/plain")
+        }
+        form_data = {
+            "datasetName": dataset_name
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(url, files=files, data=form_data, headers=headers)
+            resp.raise_for_status()
+
+    async def add_repository_url(self, dataset_name: str, github_url: str):
+        """Adds a GitHub repository URL directly to Cognee."""
+        import httpx
+        url = f"{settings.COGNEE_BASE_URL or 'http://localhost:8001'}/api/v1/add"
+        headers = {"X-Tenant-Id": "local"}
+        if settings.COGNEE_API_KEY:
+            headers["X-Api-Key"] = settings.COGNEE_API_KEY
+        
+        # The /add endpoint strictly requires a List[UploadFile].
+        # By providing a dummy filename, FastAPI will parse this multipart chunk as an UploadFile
+        # rather than a plain string, satisfying the validation schema.
+        files = {
+            "data": ("url.txt", github_url.encode('utf-8'), "text/plain")
+        }
+        form_data = {
+            "datasetName": dataset_name
+        }
+        
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(url, files=files, data=form_data, headers=headers)
+            if resp.status_code >= 400:
+                print(f"Error from Cognee API: {resp.text}")
+            resp.raise_for_status()
 
     async def cognify_repository(self, dataset_name: str):
         """Processes the added data into a knowledge graph."""
-        # cognify expects dataset names
-        await cognee.cognify(datasets=[dataset_name])
+        import httpx
+        url = f"{settings.COGNEE_BASE_URL or 'http://localhost:8001'}/api/v1/cognify"
+        headers = {"X-Tenant-Id": "local"}
+        if settings.COGNEE_API_KEY:
+            headers["X-Api-Key"] = settings.COGNEE_API_KEY
+            
+        payload = {
+            "datasets": [dataset_name]
+        }
+        
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
 
     async def search(self, dataset_name: str, query: str):
         """Searches the knowledge graph."""
-        # We can use recall which auto-routes
-        # But recall might not accept dataset_name as easily as passing it to the global context? 
-        # Actually in Cognee v1.0, recall searches across all, or we use search with datasets parameter.
-        results = await cognee.search(
-            query_text=query,
-            query_type="GRAPH_COMPLETION",
-            datasets=[dataset_name]
-        )
-        return results
+        import httpx
+        url = f"{settings.COGNEE_BASE_URL or 'http://localhost:8001'}/api/v1/search"
+        headers = {"X-Tenant-Id": "local"}
+        if settings.COGNEE_API_KEY:
+            headers["X-Api-Key"] = settings.COGNEE_API_KEY
+            
+        payload = {
+            "query": query,
+            "searchType": "GRAPH_COMPLETION",
+            "datasets": [dataset_name]
+        }
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(url, json=payload, headers=headers)
+            if resp.status_code >= 400:
+                print(f"Error from Cognee API (search): {resp.status_code} - {resp.text}")
+            resp.raise_for_status()
+            return resp.json()
 
     async def recall(self, query: str):
         """Generic recall across datasets"""
