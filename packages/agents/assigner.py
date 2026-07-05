@@ -14,12 +14,17 @@ class AssignerAgent:
             You are the AssignerAgent. A new ticket has been reported.
             Your job is to recommend the best developer to fix this issue.
             Use the search_memory tool to query the repository's knowledge graph.
-            Look for developers who have authored commits related to the keywords in the ticket.
+            
+            CRITICAL: The search_memory tool is powered by an intelligent Graph LLM. 
+            Do NOT send a list of keywords (e.g., "text card icon"). 
+            Instead, formulate a complete natural language question asking who is responsible for the buggy feature. 
+            Example query: "Who is the developer responsible for the text on the cards being very light and small?"
+            
             Return a JSON object containing:
-            - recommended_developer_email
+            - recommended_developer_email (string, extract the developer name/email from the search response)
             - confidence_score (0-100)
-            - reasoning
-            - evidence (dict of commits/files)
+            - reasoning (string)
+            - evidence (dict, MUST contain a key "graph_response" with the exact string returned by the search_memory tool)
             """,
             tools=[search_memory_tool]
         )

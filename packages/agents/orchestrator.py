@@ -49,6 +49,30 @@ def trigger_historical_sync(repo_id: str, limit: int = 10):
             except Exception as e:
                 print(f"[SYNC] Error fetching files for commit {commit['sha']}: {e}")
 
+            # Upsert developer to local database
+            author_email = commit['author_email']
+            author_name = commit['author_name']
+            if author_email:
+                from packages.shared.database import SessionLocal
+                from packages.domain.models import Developer
+                import uuid
+                
+                db = SessionLocal()
+                try:
+                    dev = db.query(Developer).filter(Developer.canonical_email == author_email).first()
+                    if not dev:
+                        print(f"[SYNC] Auto-creating developer record for {author_name} ({author_email})")
+                        dev = Developer(
+                            id=str(uuid.uuid4()),
+                            name=author_name,
+                            canonical_email=author_email,
+                            github_username=author_name # Best guess for github username
+                        )
+                        db.add(dev)
+                        db.commit()
+                finally:
+                    db.close()
+
             # Add this rich markdown document to Cognee
             await memory_service.add_repository_data(repo_id, md)
         
