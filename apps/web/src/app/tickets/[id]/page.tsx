@@ -40,9 +40,27 @@ export default function TicketDetailView() {
         return res.json();
       })
       .then(data => setTicket(data))
-      .catch(() => router.push("/developer/dashboard"))
+      .catch(() => router.back())
       .finally(() => setLoading(false));
   }, [params.id, router]);
+
+  const handleCloseTicket = async () => {
+    try {
+      const res = await fetch(`http://localhost:8000/tickets/${params.id}/close`, {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer mock-token-developer"
+        }
+      });
+      if (res.ok) {
+        setTicket((prev) => prev ? { ...prev, status: "closed" } : null);
+      } else {
+        console.error("Failed to close ticket");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (loading) {
     return (
@@ -61,17 +79,26 @@ export default function TicketDetailView() {
   return (
     <div className="animate-in slide-in-from-bottom-4 fade-in duration-700 max-w-4xl mx-auto">
       <div className="mb-8 flex items-center space-x-4">
-        <Link href="/developer/dashboard" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+        <button onClick={() => router.back()} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
           <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-        </Link>
+        </button>
         <div>
           <div className="flex items-center space-x-3">
             <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">Ticket #{ticket.id.substring(0, 8)}</h2>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border bg-green-100 text-green-800 border-green-200">
               {ticket.status.toUpperCase()}
             </span>
+            {ticket.status !== 'closed' && (
+              <button 
+                type="button"
+                onClick={handleCloseTicket}
+                className="ml-4 px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 rounded-md text-sm font-medium transition-colors border border-red-200"
+              >
+                Close Ticket
+              </button>
+            )}
           </div>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Created on {new Date(ticket.created_at).toLocaleString()}</p>
         </div>

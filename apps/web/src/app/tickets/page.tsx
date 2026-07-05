@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 interface Ticket {
@@ -16,8 +17,11 @@ interface Ticket {
 }
 
 export default function TicketList() {
+  const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
+  const [severityFilter, setSeverityFilter] = useState<string>('all');
 
   useEffect(() => {
     fetch("http://localhost:8000/tickets/", {
@@ -52,11 +56,19 @@ export default function TicketList() {
     }
   };
 
+  const filteredTickets = tickets.filter(ticket => {
+    const isActive = ticket.status !== 'closed';
+    const matchesTab = activeTab === 'active' ? isActive : !isActive;
+    const matchesSeverity = severityFilter === 'all' || ticket.severity.toLowerCase() === severityFilter.toLowerCase();
+    
+    return matchesTab && matchesSeverity;
+  });
+
   return (
     <div className="animate-in slide-in-from-bottom-4 fade-in duration-700">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Active Tickets</h2>
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Tickets</h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage and track issues across your organization.</p>
         </div>
         <Link 
@@ -67,22 +79,68 @@ export default function TicketList() {
         </Link>
       </div>
 
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
+        <div className="flex space-x-1 bg-gray-100 dark:bg-black/40 p-1 rounded-xl">
+          <button
+            onClick={() => setActiveTab('active')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'active' 
+                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            Active
+          </button>
+          <button
+            onClick={() => setActiveTab('closed')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'closed' 
+                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' 
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            Closed
+          </button>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <label htmlFor="severity-filter" className="text-sm font-medium text-gray-500 dark:text-gray-400">Severity:</label>
+          <select
+            id="severity-filter"
+            value={severityFilter}
+            onChange={(e) => setSeverityFilter(e.target.value)}
+            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-black/20 px-3 py-2 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-white"
+          >
+            <option value="all">All</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </div>
+      </div>
+
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         </div>
-      ) : tickets.length === 0 ? (
+      ) : filteredTickets.length === 0 ? (
         <div className="glass-panel text-center py-16 rounded-2xl">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No tickets</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new issue.</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {activeTab} tickets found</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {activeTab === 'active' ? "Get started by creating a new issue or adjust your filters." : "No tickets have been closed yet."}
+          </p>
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {tickets.map(ticket => (
-            <div key={ticket.id} className="glass-panel group rounded-2xl p-6 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer">
+          {filteredTickets.map(ticket => (
+            <div 
+              key={ticket.id} 
+              onClick={() => router.push(`/tickets/${ticket.id}`)}
+              className="glass-panel group rounded-2xl p-6 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+            >
               <div className="flex justify-between items-start mb-4">
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
                   {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}

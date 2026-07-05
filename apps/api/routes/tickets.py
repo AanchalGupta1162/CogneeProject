@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
 from packages.shared.database import get_db
 from packages.domain import models, schemas
 from apps.api.dependencies import get_current_user
 from packages.agents.orchestrator import trigger_assignment_agent
+
+class TicketAssign(BaseModel):
+    developer_id: str
+
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
@@ -54,6 +59,11 @@ def get_tickets(db: Session = Depends(get_db), current_user: models.User = Depen
         
     return response
 
+@router.get("/developers")
+def get_developers(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    devs = db.query(models.Developer).all()
+    return [{"id": d.id, "name": d.name, "github_username": d.github_username, "canonical_email": d.canonical_email} for d in devs]
+
 @router.get("/{ticket_id}", response_model=schemas.TicketDetailResponse)
 def get_ticket(ticket_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     ticket = db.query(models.Ticket).filter(
@@ -96,3 +106,45 @@ def reject_ticket(ticket_id: str, db: Session = Depends(get_db), current_user: m
     ticket.assigned_developer_id = None
     db.commit()
     return {"message": "Ticket rejected and moved to triage"}
+
+
+
+@router.post("/{ticket_id}/assign")
+def assign_ticket(
+    ticket_id: str,
+    assign_in: TicketAssign,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    ticket = db.query(models.Ticket).filter(
+        models.Ticket.id == ticket_id,
+        models.Ticket.organization_id == current_user.organization_id
+    ).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+        
+    dev = db.query(models.Developer).filter(models.Developer.id == assign_in.developer_id).first()
+    if not dev:
+        raise HTTPException(status_code=404, detail="Developer not found")
+        
+    ticket.assigned_developer_id = dev.id
+    ticket.status = "assigned"
+    db.commit()
+    return {"message": f"Ticket assigned successfully to {dev.name}"}
+
+@router.post("/{ticket_id}/close")
+def close_ticket(
+    ticket_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    ticket = db.query(models.Ticket).filter(
+        models.Ticket.id == ticket_id,
+        models.Ticket.organization_id == current_user.organization_id
+    ).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+        
+    ticket.status = "closed"
+    db.commit()
+    return {"message": "Ticket closed successfully"}

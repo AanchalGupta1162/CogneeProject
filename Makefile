@@ -1,7 +1,7 @@
 .PHONY: up down build test lint
 
 up:
-	docker-compose -f infra/docker/docker-compose.yml up -d
+	docker-compose -f infra/docker/docker-compose.yml up -d db redis
 
 down:
 	docker-compose -f infra/docker/docker-compose.yml down

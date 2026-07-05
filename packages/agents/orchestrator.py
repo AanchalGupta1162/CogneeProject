@@ -81,8 +81,27 @@ def trigger_assignment_agent(ticket_id: str):
     ))
     
     dev = None
-    if result.get("recommended_developer_email"):
-        dev = db.query(Developer).filter(Developer.canonical_email == result["recommended_developer_email"]).first()
+    recommended = result.get("recommended_developer_email")
+    if recommended:
+        recommended = recommended.strip()
+        # 1. Try canonical email match (case-insensitive)
+        dev = db.query(Developer).filter(Developer.canonical_email.ilike(recommended)).first()
+        
+        # 2. Try github username match (case-insensitive)
+        if not dev:
+            dev = db.query(Developer).filter(Developer.github_username.ilike(recommended)).first()
+            
+        # 3. Try name match (case-insensitive)
+        if not dev:
+            dev = db.query(Developer).filter(Developer.name.ilike(recommended)).first()
+            
+        # 4. Try wildcard search on name, github username, or email
+        if not dev:
+            dev = db.query(Developer).filter(
+                (Developer.name.ilike(f"%{recommended}%")) |
+                (Developer.github_username.ilike(f"%{recommended}%")) |
+                (Developer.canonical_email.ilike(f"%{recommended}%"))
+            ).first()
     
     recommendation = AssignmentRecommendation(
         ticket_id=ticket.id,
