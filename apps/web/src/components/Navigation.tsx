@@ -12,14 +12,12 @@ export default function Navigation() {
   const [localUser, setLocalUser] = useState<{ role: string; name: string } | null>(null);
 
   useEffect(() => {
-    // Check local storage for mock auth
     const storedUser = localStorage.getItem("smart-ticket-user");
     if (storedUser) {
       setLocalUser(JSON.parse(storedUser));
     }
   }, [pathname]);
 
-  // Combine NextAuth session with local mock session
   const userRole = session?.user ? "developer" : localUser?.role;
   const userName = session?.user?.name || localUser?.name;
 
@@ -32,79 +30,137 @@ export default function Navigation() {
     router.push("/login");
   };
 
-  if (pathname === "/login") return null; // Don't show nav on login page
+  if (pathname === "/login") return null;
+
+  const links =
+    userRole === "developer"
+      ? [{ href: "/developer/dashboard", label: "My Dashboard" }]
+      : userRole === "admin"
+      ? [
+          { href: "/tickets", label: "Tickets" },
+          { href: "/tickets/new", label: "Report Issue" },
+          { href: "/admin", label: "Admin" },
+        ]
+      : [
+          // client / reporter — no admin access
+          { href: "/tickets", label: "Tickets" },
+          { href: "/tickets/new", label: "Report Issue" },
+        ];
 
   return (
-    <nav className="glass-panel sticky top-0 z-50 px-4 py-3 sm:px-6 lg:px-8 mb-8 border-b border-white/10">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center space-x-8">
-          <Link href="/" className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600">
-            SmartTicket AI
+    <header
+      style={{
+        background: "rgba(10,10,15,0.85)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid var(--border)",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          padding: "0 24px",
+          height: "52px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Left: Logo + Links */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Link
+            href="/"
+            style={{
+              fontSize: "15px",
+              fontWeight: 700,
+              color: "var(--text)",
+              textDecoration: "none",
+              marginRight: "16px",
+              letterSpacing: "-0.01em",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <span
+              style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "6px",
+                background: "var(--accent)",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+            </span>
+            SmartTicket
           </Link>
-          
-          <div className="hidden sm:flex space-x-4">
-            {userRole === "developer" ? (
-              <Link 
-                href="/developer/dashboard"
-                className={`text-sm font-medium transition-colors hover:text-indigo-500 ${pathname.includes('/developer') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300'}`}
-              >
-                My Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link 
-                  href="/tickets"
-                  className={`text-sm font-medium transition-colors hover:text-indigo-500 ${pathname === '/tickets' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300'}`}
+
+          <nav style={{ display: "flex", alignItems: "center", gap: "2px" }}>
+            {links.map(({ href, label }) => {
+              const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`nav-link${isActive ? " active" : ""}`}
                 >
-                  All Tickets
+                  {label}
                 </Link>
-                <Link 
-                  href="/tickets/new"
-                  className={`text-sm font-medium transition-colors hover:text-indigo-500 ${pathname === '/tickets/new' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300'}`}
-                >
-                  Report Issue
-                </Link>
-                <Link 
-                  href="/admin"
-                  className={`text-sm font-medium transition-colors hover:text-indigo-500 ${pathname === '/admin' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300'}`}
-                >
-                  Admin Setup
-                </Link>
-              </>
-            )}
-          </div>
+              );
+            })}
+          </nav>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {(session || localUser) ? (
+        {/* Right: User */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {session || localUser ? (
             <>
-              <div className="flex items-center space-x-2">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                 {session?.user?.image ? (
-                  <img src={session.user.image} alt="Avatar" className="w-8 h-8 rounded-full shadow-lg" />
+                  <img
+                    src={session.user.image}
+                    alt="Avatar"
+                    style={{ width: 28, height: 28, borderRadius: "50%" }}
+                  />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                    {userName ? userName.charAt(0) : "U"}
+                  <div className="avatar">
+                    {userName ? userName.charAt(0).toUpperCase() : "U"}
                   </div>
                 )}
-                <span className="text-sm font-medium hidden sm:block text-gray-700 dark:text-gray-300">{userName}</span>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    color: "var(--text-2)",
+                    fontWeight: 500,
+                  }}
+                >
+                  {userName}
+                </span>
               </div>
-              <button 
+              <button
                 onClick={handleLogout}
-                className="text-sm text-gray-500 hover:text-red-500 transition-colors"
+                className="btn btn-ghost"
+                style={{ padding: "5px 10px", fontSize: "13px" }}
               >
-                Logout
+                Sign out
               </button>
             </>
           ) : (
-            <Link 
-              href="/login"
-              className="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30"
-            >
-              Sign In
+            <Link href="/login" className="btn btn-primary" style={{ padding: "6px 14px" }}>
+              Sign in
             </Link>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

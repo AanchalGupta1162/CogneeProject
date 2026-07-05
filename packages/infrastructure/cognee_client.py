@@ -14,7 +14,8 @@ class CogneeMemoryService:
         import os
         if settings.GOOGLE_API_KEY:
             os.environ["LLM_API_KEY"] = settings.GOOGLE_API_KEY
-            os.environ["LLM_PROVIDER"] = "gemini" # Assuming cognee supports gemini via litellm or directly
+            os.environ["LLM_PROVIDER"] = "gemini"
+            os.environ["LLM_MODEL"] = "gemini/gemini-3.1-flash-lite"
         
         # Connect to Cognee Cloud or the Local UI Backend running on port 8001
         if settings.COGNEE_BASE_URL:

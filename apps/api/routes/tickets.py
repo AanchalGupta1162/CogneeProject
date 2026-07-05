@@ -148,3 +148,24 @@ def close_ticket(
     ticket.status = "closed"
     db.commit()
     return {"message": "Ticket closed successfully"}
+
+@router.post("/{ticket_id}/solve")
+def solve_ticket(
+    ticket_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    ticket = db.query(models.Ticket).filter(
+        models.Ticket.id == ticket_id,
+        models.Ticket.organization_id == current_user.organization_id
+    ).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    if ticket.status in ("closed", "solved"):
+        raise HTTPException(status_code=400, detail="Ticket is already resolved")
+
+    ticket.status = "solved"
+    db.commit()
+    return {"message": "Ticket marked as solved"}
+

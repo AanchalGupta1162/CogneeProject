@@ -11,6 +11,9 @@ async def main():
     # Configure shared Cognee data directory so UI and Docker see the same DB
     # MUST be set BEFORE importing cognee!
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(repo_root, ".env"))
+
     cognee_data_dir = os.path.join(repo_root, ".cognee_data")
     os.environ["DATA_ROOT_DIRECTORY"] = os.path.join(cognee_data_dir, "data")
     os.environ["SYSTEM_ROOT_DIRECTORY"] = os.path.join(cognee_data_dir, "system")

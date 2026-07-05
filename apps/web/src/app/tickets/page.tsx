@@ -16,102 +16,160 @@ interface Ticket {
   assigned_developer_name?: string | null;
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const s = status.toLowerCase();
+  const cls =
+    s === "open"
+      ? "badge-open"
+      : s === "assigned"
+      ? "badge-assigned"
+      : s === "triage"
+      ? "badge-triage"
+      : s === "pending_approval"
+      ? "badge-pending"
+      : s === "solved"
+      ? "badge-assigned" // green — resolved by developer
+      : "badge-closed";
+
+  const label =
+    s === "pending_approval"
+      ? "Pending"
+      : status.charAt(0).toUpperCase() + status.slice(1);
+
+  return <span className={`badge ${cls}`}>{label}</span>;
+}
+
+function SeverityDot({ severity }: { severity: string }) {
+  const s = severity.toLowerCase();
+  const cls =
+    s === "high"
+      ? "sev-high"
+      : s === "medium"
+      ? "sev-medium"
+      : s === "critical"
+      ? "sev-critical"
+      : "sev-low";
+  return (
+    <span className={cls} style={{ fontWeight: 600, fontSize: "12px" }}>
+      {severity.toUpperCase()}
+    </span>
+  );
+}
+
 export default function TicketList() {
   const router = useRouter();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
-  const [severityFilter, setSeverityFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<"active" | "closed">("active");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
 
   useEffect(() => {
     fetch("http://localhost:8000/tickets/", {
-      headers: {
-        "Authorization": "Bearer mock-token-client"
-      }
+      headers: { Authorization: "Bearer mock-token-client" },
     })
-      .then(res => res.json())
-      .then(data => {
-        setTickets(Array.isArray(data) ? data : []);
-      })
+      .then((res) => res.json())
+      .then((data) => setTickets(Array.isArray(data) ? data : []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'open': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'assigned': return 'bg-green-100 text-green-800 border-green-200';
-      case 'triage': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'closed': return 'bg-gray-100 text-gray-800 border-gray-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch(severity.toLowerCase()) {
-      case 'high': return 'text-red-500';
-      case 'medium': return 'text-orange-500';
-      case 'low': return 'text-blue-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  const filteredTickets = tickets.filter(ticket => {
-    const isActive = ticket.status !== 'closed';
-    const matchesTab = activeTab === 'active' ? isActive : !isActive;
-    const matchesSeverity = severityFilter === 'all' || ticket.severity.toLowerCase() === severityFilter.toLowerCase();
-    
+  const filteredTickets = tickets.filter((ticket) => {
+    const isActive = ticket.status !== "closed";
+    const matchesTab = activeTab === "active" ? isActive : !isActive;
+    const matchesSeverity =
+      severityFilter === "all" ||
+      ticket.severity.toLowerCase() === severityFilter.toLowerCase();
     return matchesTab && matchesSeverity;
   });
 
   return (
-    <div className="animate-in slide-in-from-bottom-4 fade-in duration-700">
-      <div className="flex justify-between items-center mb-6">
+    <div className="fade-up">
+      {/* Page header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: "28px",
+          paddingTop: "32px",
+        }}
+      >
         <div>
-          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Tickets</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage and track issues across your organization.</p>
+          <h1
+            style={{
+              fontSize: "22px",
+              fontWeight: 700,
+              color: "var(--text)",
+              margin: "0 0 4px",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Tickets
+          </h1>
+          <p style={{ fontSize: "13px", color: "var(--text-3)", margin: 0 }}>
+            Track and manage issues across your organization
+          </p>
         </div>
-        <Link 
-          href="/tickets/new" 
-          className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30"
-        >
-          Report Issue
+        <Link href="/tickets/new" className="btn btn-primary">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          New Issue
         </Link>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
-        <div className="flex space-x-1 bg-gray-100 dark:bg-black/40 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('active')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'active' 
-                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            onClick={() => setActiveTab('closed')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'closed' 
-                ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            Closed
-          </button>
+      {/* Filters bar */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "16px",
+        }}
+      >
+        {/* Tabs */}
+        <div
+          style={{
+            display: "flex",
+            gap: "2px",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            padding: "3px",
+          }}
+        >
+          {(["active", "closed"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: "5px 14px",
+                borderRadius: "6px",
+                fontSize: "13px",
+                fontWeight: 500,
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.15s",
+                background: activeTab === tab ? "var(--surface-2)" : "transparent",
+                color: activeTab === tab ? "var(--text)" : "var(--text-3)",
+              }}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
 
-        <div className="flex items-center space-x-2">
-          <label htmlFor="severity-filter" className="text-sm font-medium text-gray-500 dark:text-gray-400">Severity:</label>
+        {/* Severity filter */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "12px", color: "var(--text-3)" }}>Severity</span>
           <select
-            id="severity-filter"
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-black/20 px-3 py-2 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500 text-gray-900 dark:text-white"
+            className="input"
+            style={{ width: "auto", padding: "6px 10px", fontSize: "13px" }}
           >
             <option value="all">All</option>
+            <option value="critical">Critical</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
@@ -119,54 +177,153 @@ export default function TicketList() {
         </div>
       </div>
 
+      {/* Content */}
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "200px",
+          }}
+        >
+          <div className="spinner" />
         </div>
       ) : filteredTickets.length === 0 ? (
-        <div className="glass-panel text-center py-16 rounded-2xl">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        <div
+          className="card"
+          style={{
+            padding: "64px 24px",
+            textAlign: "center",
+          }}
+        >
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="var(--text-3)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ margin: "0 auto 12px" }}
+          >
+            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No {activeTab} tickets found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            {activeTab === 'active' ? "Get started by creating a new issue or adjust your filters." : "No tickets have been closed yet."}
+          <p style={{ color: "var(--text-2)", fontSize: "14px", fontWeight: 500, margin: "0 0 4px" }}>
+            No {activeTab} tickets
+          </p>
+          <p style={{ color: "var(--text-3)", fontSize: "13px", margin: 0 }}>
+            {activeTab === "active"
+              ? "Create a new issue to get started."
+              : "No closed tickets yet."}
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredTickets.map(ticket => (
-            <div 
-              key={ticket.id} 
+        <div className="card" style={{ overflow: "hidden" }}>
+          {/* Table header */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 100px 100px 130px 120px",
+              padding: "10px 20px",
+              borderBottom: "1px solid var(--border)",
+              fontSize: "11px",
+              fontWeight: 600,
+              color: "var(--text-3)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+            }}
+          >
+            <span>Title</span>
+            <span>Status</span>
+            <span>Severity</span>
+            <span>Assignee</span>
+            <span>Created</span>
+          </div>
+
+          {/* Table rows */}
+          {filteredTickets.map((ticket, i) => (
+            <div
+              key={ticket.id}
               onClick={() => router.push(`/tickets/${ticket.id}`)}
-              className="glass-panel group rounded-2xl p-6 transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 100px 100px 130px 120px",
+                padding: "14px 20px",
+                alignItems: "center",
+                borderBottom:
+                  i < filteredTickets.length - 1 ? "1px solid var(--border)" : "none",
+                cursor: "pointer",
+                transition: "background 0.12s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "var(--surface-2)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
             >
-              <div className="flex justify-between items-start mb-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(ticket.status)}`}>
-                  {ticket.status.charAt(0).toUpperCase() + ticket.status.slice(1)}
-                </span>
-                <span className={`flex items-center text-xs font-semibold ${getSeverityColor(ticket.severity)}`}>
-                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  {ticket.severity.toUpperCase()}
-                </span>
+              <div style={{ paddingRight: "16px", minWidth: 0 }}>
+                <p
+                  style={{
+                    fontSize: "13.5px",
+                    fontWeight: 500,
+                    color: "var(--text)",
+                    margin: "0 0 2px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {ticket.title}
+                </p>
+                <p
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--text-3)",
+                    margin: 0,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {ticket.repository_id}
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">{ticket.title}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4">{ticket.description}</p>
-              
-              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>{new Date(ticket.created_at).toLocaleDateString()}</span>
-                {ticket.assigned_developer_id && ticket.assigned_developer_name ? (
-                  <span className="flex items-center text-indigo-500">
-                    <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-1">
+              <div>
+                <StatusBadge status={ticket.status} />
+              </div>
+              <div>
+                <SeverityDot severity={ticket.severity} />
+              </div>
+              <div>
+                {ticket.assigned_developer_name ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div className="avatar" style={{ width: 20, height: 20, fontSize: "9px" }}>
                       {ticket.assigned_developer_name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="truncate max-w-[120px]">{ticket.assigned_developer_name}</span>
-                  </span>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--text-2)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {ticket.assigned_developer_name}
+                    </span>
+                  </div>
                 ) : (
-                  <span>Unassigned</span>
+                  <span style={{ fontSize: "12px", color: "var(--text-3)" }}>—</span>
                 )}
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-3)" }}>
+                {new Date(ticket.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
               </div>
             </div>
           ))}

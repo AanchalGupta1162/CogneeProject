@@ -4,16 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+const SEVERITY_OPTIONS = [
+  { value: "low", label: "Low", color: "var(--sev-low, #60a5fa)" },
+  { value: "medium", label: "Medium", color: "#fb923c" },
+  { value: "high", label: "High", color: "#f87171" },
+  { value: "critical", label: "Critical", color: "#e879f9" },
+];
+
 export default function NewTicket() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     repository_id: "Harshavardhan-28/cognee_test",
-    severity: "medium"
+    severity: "medium",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,17 +33,12 @@ export default function NewTicket() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock-token-client"
+          Authorization: "Bearer mock-token-client",
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create ticket");
-      }
-
-      // Instead of going directly to /tickets, we redirect to tickets so they can see it
-      // In a real app we might redirect to /tickets/[id]
+      if (!response.ok) throw new Error("Failed to create ticket");
       router.push("/tickets");
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred.");
@@ -45,113 +47,168 @@ export default function NewTicket() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto animate-in slide-in-from-bottom-4 fade-in duration-700">
-      <div className="mb-8 flex items-center space-x-4">
-        <Link href="/tickets" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
-          <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <div className="fade-up" style={{ maxWidth: "600px", margin: "0 auto", paddingTop: "32px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
+        <Link
+          href="/tickets"
+          style={{
+            width: "30px",
+            height: "30px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "8px",
+            border: "1px solid var(--border)",
+            color: "var(--text-2)",
+            textDecoration: "none",
+            flexShrink: 0,
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--surface-2)";
+            e.currentTarget.style.color = "var(--text)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--text-2)";
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </Link>
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white">Report an Issue</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Describe the bug or feature request in detail.</p>
+          <h1
+            style={{
+              fontSize: "20px",
+              fontWeight: 700,
+              color: "var(--text)",
+              margin: "0 0 2px",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Report an Issue
+          </h1>
+          <p style={{ fontSize: "13px", color: "var(--text-3)", margin: 0 }}>
+            Describe the bug or feature request in detail
+          </p>
         </div>
       </div>
 
-      <div className="glass-panel p-8 rounded-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
-        
-        <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+      {/* Form card */}
+      <div className="card" style={{ padding: "28px" }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+          {/* Title */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Title
+            <label className="label" htmlFor="title">
+              Title <span style={{ color: "var(--accent)" }}>*</span>
             </label>
             <input
-              type="text"
               id="title"
+              type="text"
               required
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-black/20 px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 dark:text-white"
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="input"
               placeholder="e.g. Memory leak in Webhooks processor"
             />
           </div>
 
+          {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Description
+            <label className="label" htmlFor="description">
+              Description <span style={{ color: "var(--accent)" }}>*</span>
             </label>
             <textarea
               id="description"
-              rows={4}
+              rows={5}
               required
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-black/20 px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 dark:text-white"
-              placeholder="Provide steps to reproduce, expected behavior, and actual behavior."
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="input"
+              placeholder="Steps to reproduce, expected behavior, and actual behavior..."
+              style={{ resize: "vertical", lineHeight: "1.6" }}
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {/* Repository + Severity */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <div>
-              <label htmlFor="repository_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="label" htmlFor="repository_id">
                 Repository
               </label>
               <input
-                type="text"
                 id="repository_id"
+                type="text"
                 required
                 value={formData.repository_id}
-                onChange={(e) => setFormData({...formData, repository_id: e.target.value})}
-                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-black/40 px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 dark:text-white"
+                onChange={(e) => setFormData({ ...formData, repository_id: e.target.value })}
+                className="input"
+                style={{ background: "var(--surface)" }}
               />
-              <p className="mt-1 text-xs text-gray-500">The repository where this issue occurred.</p>
+              <p style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "5px" }}>
+                Where the issue occurred
+              </p>
             </div>
 
             <div>
-              <label htmlFor="severity" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="label" htmlFor="severity">
                 Severity
               </label>
               <select
                 id="severity"
                 value={formData.severity}
-                onChange={(e) => setFormData({...formData, severity: e.target.value})}
-                className="mt-1 block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-black/20 px-4 py-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm text-gray-900 dark:text-white"
+                onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                className="input"
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
+                {SEVERITY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
 
+          {/* Error */}
           {error && (
-            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm border border-red-100 dark:border-red-800/50">
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: "8px",
+                background: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.2)",
+                color: "#f87171",
+                fontSize: "13px",
+              }}
+            >
               {error}
             </div>
           )}
 
-          <div className="pt-4 flex justify-end">
+          {/* Actions */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "10px",
+              paddingTop: "4px",
+              borderTop: "1px solid var(--border)",
+            }}
+          >
             <button
               type="button"
-              onClick={() => router.push('/tickets')}
-              className="bg-white dark:bg-transparent dark:text-white dark:border-white/20 border border-gray-300 py-2 px-4 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mr-4"
+              onClick={() => router.push("/tickets")}
+              className="btn btn-secondary"
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex justify-center py-2 px-6 border border-transparent rounded-lg shadow-lg shadow-indigo-500/30 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all"
-            >
+            <button type="submit" disabled={loading} className="btn btn-primary">
               {loading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating...
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="spinner" style={{ width: 14, height: 14 }} />
+                  Submitting...
                 </span>
               ) : (
                 "Submit Ticket"

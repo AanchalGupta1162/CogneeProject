@@ -3,6 +3,10 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+load_dotenv(os.path.join(repo_root, ".env"))
 
 # CRITICAL: We must align the API's graph storage path with the UI's storage path!
 repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))

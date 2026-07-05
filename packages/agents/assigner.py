@@ -9,28 +9,26 @@ class AssignerAgent:
     def __init__(self):
         self.agent = LlmAgent(
             name="AssignerAgent",
-            model="gemini-2.5-flash",
+            model="gemini-3.1-flash-lite",
             instruction="""
             You are the AssignerAgent. A new ticket has been reported.
-            Your job is to recommend the best developer to fix this issue.
-            Use the search_memory tool to query the repository's knowledge graph.
-            
-            CRITICAL: The search_memory tool is powered by an intelligent Graph LLM. 
-            Do NOT send a list of keywords (e.g., "text card icon"). 
-            Instead, formulate a complete natural language question asking who is responsible for the buggy feature. 
-            Example query: "Who is the developer responsible for the text on the cards being very light and small?"
+            Your job is to recommend the best developer to fix this issue based on the provided memory graph evidence.
             
             Return a JSON object containing:
-            - recommended_developer_email (string, extract the developer name/email from the search response)
+            - recommended_developer_email (string, extract the developer name/email from the graph evidence)
             - confidence_score (0-100)
             - reasoning (string)
-            - evidence (dict, MUST contain a key "graph_response" with the exact string returned by the search_memory tool)
-            """,
-            tools=[search_memory_tool]
+            - evidence (dict, MUST contain a key "graph_response" with the exact string provided in the evidence)
+            """
         )
 
     async def run(self, ticket_id: str, repo_id: str, title: str, description: str):
-        prompt = f"Ticket ID: {ticket_id}\nRepo ID: {repo_id}\nTitle: {title}\nDescription: {description}\nAnalyze memory and recommend a developer."
+        # 1. Fetch graph context manually to save 1 LLM turn
+        query = f"Who is the developer responsible for the feature related to: {title}? {description}"
+        graph_evidence = await search_memory_tool.func(query, repo_id)
+
+        # 2. Inject context directly into prompt
+        prompt = f"Ticket ID: {ticket_id}\nRepo ID: {repo_id}\nTitle: {title}\nDescription: {description}\n\nGraph Evidence:\n{graph_evidence}\n\nAnalyze the evidence and recommend a developer."
         
         session_id = str(uuid.uuid4())
         runner = InMemoryRunner(agent=self.agent, app_name="ticket_app")
